@@ -1,0 +1,29 @@
+services:
+  store-app:
+    build: .
+    container_name: store-app
+    ports:
+      - "8888:8888"
+  sonarqube:
+    image: sonarqube
+    container_name: sonarqube
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    ports:
+      - "9000:9000"
+#  nessus:
+#    image: nessus/nessus
+#    container_name: nessus
+#    ports:
+#      - "8834:8834"
+  nessus:  
+     # Nessus Vulnerability Scanner  
+    image: jmmedinac03/nessus_plugins  
+        #    image: tenable/nessus:latest-ubuntu  
+        #    restart: always  
+        #    código de activacion nessus A2AA-KWWR-ZRSM-RW79-LBPH  
+        #    acceso a la máquina por https://localhost:8834   
+        #    creado usuario:usuario passwd:usuario  
+    ports:  
+      - 8834:8834  
+
