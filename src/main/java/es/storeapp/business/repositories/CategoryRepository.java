@@ -1,9 +1,12 @@
 package es.storeapp.business.repositories;
 
-import es.storeapp.business.entities.Category;
 import java.util.List;
+
 import javax.persistence.Query;
+
 import org.springframework.stereotype.Repository;
+
+import es.storeapp.business.services.Category;
 
 @Repository
 public class CategoryRepository extends AbstractRepository<Category> {

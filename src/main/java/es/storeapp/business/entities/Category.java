@@ -1,11 +1,13 @@
 package es.storeapp.business.entities;
 
-import es.storeapp.common.Constants;
 import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
+import es.storeapp.common.Constants;
 
 @Entity(name = Constants.CATEGORY_ENTITY)
 @Table(name = Constants.CATEGORIES_TABLE)

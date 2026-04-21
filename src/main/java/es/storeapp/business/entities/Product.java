@@ -1,9 +1,9 @@
 package es.storeapp.business.entities;
 
-import es.storeapp.common.Constants;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -11,6 +11,9 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
+import es.storeapp.business.services.Category;
+import es.storeapp.common.Constants;
 
 @Entity(name = Constants.PRODUCT_ENTITY)
 @Table(name = Constants.PRODUCTS_TABLE)

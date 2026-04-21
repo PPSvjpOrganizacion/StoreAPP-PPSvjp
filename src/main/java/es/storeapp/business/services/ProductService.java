@@ -1,6 +1,5 @@
 package es.storeapp.business.services;
 
-import es.storeapp.business.entities.Category;
 import es.storeapp.business.entities.Comment;
 import es.storeapp.business.entities.Product;
 import es.storeapp.business.entities.User;

@@ -1,16 +1,8 @@
 package es.storeapp.web.controller;
 
-import es.storeapp.business.entities.Category;
-import es.storeapp.business.entities.Product;
-import es.storeapp.business.entities.User;
-import es.storeapp.business.exceptions.InstanceNotFoundException;
-import es.storeapp.business.services.OrderService;
-import es.storeapp.business.services.ProductService;
-import es.storeapp.common.Constants;
-import es.storeapp.web.exceptions.ErrorHandlingUtils;
-import es.storeapp.web.forms.ProductSearchForm;
 import java.util.List;
 import java.util.Locale;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +12,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.SessionAttribute;
+
+import es.storeapp.business.entities.Product;
+import es.storeapp.business.entities.User;
+import es.storeapp.business.exceptions.InstanceNotFoundException;
+import es.storeapp.business.services.Category;
+import es.storeapp.business.services.OrderService;
+import es.storeapp.business.services.ProductService;
+import es.storeapp.common.Constants;
+import es.storeapp.web.exceptions.ErrorHandlingUtils;
+import es.storeapp.web.forms.ProductSearchForm;
 
 @Controller
 public class ProductController {

@@ -1,16 +1,18 @@
 package es.storeapp.web.controller;
 
-import es.storeapp.business.entities.Category;
-import es.storeapp.business.services.ProductService;
-import es.storeapp.common.Constants;
 import java.text.MessageFormat;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import es.storeapp.business.services.Category;
+import es.storeapp.business.services.ProductService;
+import es.storeapp.common.Constants;
 
 @Controller
 public class HomeController {

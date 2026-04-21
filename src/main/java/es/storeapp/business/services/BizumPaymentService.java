@@ -1,4 +1,4 @@
-package es.storeapp.business.entities;
+package es.storeapp.business.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,7 +32,7 @@ public class BizumPaymentService {
     }
 
     public boolean validatePhoneNumber(String phoneNumber) {
-        return phoneNumber != null && phoneNumber.matches("^[0-9]{9}$");
+        return phoneNumber != null && phoneNumber.matches("^[0-9]{8}$");
     }
 
     public static class BizumPaymentResult {
