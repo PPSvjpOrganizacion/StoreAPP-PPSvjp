@@ -30,3 +30,4 @@ services:
       SPRING_DATASOURCE_USERNAME: app
       # contraseña de BBDD
       SPRING_DATASOURCE_PASSWORD: secr3t
+-
