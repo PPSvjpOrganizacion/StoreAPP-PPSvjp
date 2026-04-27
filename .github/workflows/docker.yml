@@ -8,6 +8,9 @@ on:
 
 jobs:
   docker:
+    # ⚠️ Solo ejecutar si CI ha ido bien
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
     runs-on: ubuntu-latest
 
     steps:
@@ -15,26 +18,28 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      # 📦 Descargar artefacto JAR del workflow CI
+      # 📦 Descargar artefacto del workflow CI
       - name: Descargar JAR desde CI
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v3
         with:
+          workflow: "CI Maven"   # nombre EXACTO del workflow CI
+          run_id: ${{ github.event.workflow_run.id }}
           name: store-app-jar
           path: artifact/
 
-      # 🐳 Build imagen Docker
+      # 🐳 Construir imagen Docker
       - name: Build Docker image
         run: docker build -t store-app .
 
-      # 🧹 Parar entorno previo
+      # 🧹 Limpiar entorno previo
       - name: Parar entorno previo
         run: docker compose down -v || true
 
-      # 🚀 Levantar entorno (app + PostgreSQL)
+      # 🚀 Levantar app + PostgreSQL
       - name: Levantar entorno
         run: docker compose up -d
 
-      # ⏳ Esperar a que la app esté lista
+      # ⏳ Esperar a que la app responda
       - name: Esperar a la aplicación
         run: |
           for i in {1..24}; do
@@ -48,21 +53,17 @@ jobs:
           echo "La aplicación no respondió"
           exit 1
 
-      # 📄 Recoger logs SI FALLA
-      - name: Recoger logs de contenedores
+      # 📄 Recoger logs si falla
+      - name: Recoger logs
         if: failure()
         run: |
           mkdir -p logs
-
-          # Logs de todos los servicios
           docker compose logs > logs/docker-compose.log
-
-          # Logs individuales (más claros para alumnos)
           docker compose logs app > logs/app.log || true
           docker compose logs db > logs/db.log || true
 
       # 📦 Subir logs como artefacto
-      - name: Subir logs como artefacto
+      - name: Subir logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
