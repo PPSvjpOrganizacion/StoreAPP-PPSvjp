@@ -1,0 +1,114 @@
+# Nombre visible del workflow en la pestaña Actions de GitHub.
+name: CI Maven
+
+# Eventos que disparan la ejecución del workflow.
+on:
+  # Se ejecuta en cada push a cualquier rama del repositorio.
+  push:
+    branches:
+      - '**'
+
+  # También se ejecuta cuando se abre o actualiza una pull request.
+  pull_request:
+
+# Conjunto de trabajos que componen el workflow.
+jobs:
+  # Nombre interno del job. Aquí concentramos compilación, tests y prueba básica.
+  build-test-package:
+    # Máquina virtual sobre la que se ejecutará el job.
+    runs-on: ubuntu-latest
+
+    # Secuencia de pasos del job.
+    steps:
+      # Descarga en el runner el contenido del repositorio.
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # Instala y configura Java 11 con la distribución Temurin.
+      # Además activa caché de Maven para acelerar descargas de dependencias.
+      - name: Configurar Java 11
+        uses: actions/setup-java@v4
+        with:
+          # Distribución de Java que se instalará en el runner.
+          distribution: temurin
+          # Versión de Java necesaria para el proyecto.
+          java-version: '11'
+          # Guarda y reutiliza el repositorio local de Maven entre ejecuciones.
+          cache: maven
+
+      # Ejecuta Maven en modo batch (-B), limpia resultados anteriores
+      # y recorre el lifecycle default hasta la fase verify.
+      # Esto implica, según el proyecto, compilar, probar y empaquetar.
+      - name: Ejecutar ciclo default hasta verify
+        run: mvn -B clean verify
+
+      # Busca el JAR generado dentro de target/ para poder reutilizarlo
+      # en pasos posteriores del workflow.
+      - name: Localizar JAR generado
+        id: jar
+        run: |
+          # Busca un .jar en target/, excluyendo posibles jars auxiliares.
+          JAR_FILE=$(find target -maxdepth 1 -type f -name '*.jar' ! -name '*sources.jar' ! -name '*javadoc.jar' | head -n 1)
+
+          # Si no se ha generado ningún JAR, el workflow falla.
+          if [ -z "$JAR_FILE" ]; then
+            echo "No se encontró ningún JAR en target/"
+            exit 1
+          fi
+
+          # Guarda la ruta encontrada como salida del paso.
+          # Así podrá usarse luego con: steps.jar.outputs.jar_file
+          echo "jar_file=$JAR_FILE" >> "$GITHUB_OUTPUT"
+
+      # Sube el JAR generado como artefacto de GitHub Actions.
+      # Esto permite descargarlo desde la ejecución del workflow.
+      - name: Publicar artefacto JAR
+        uses: actions/upload-artifact@v4
+        with:
+          # Nombre con el que aparecerá el artefacto en GitHub.
+          name: store-app-jar
+          # Ruta del archivo a subir, obtenida del paso anterior.
+          path: ${{ steps.jar.outputs.jar_file }}
+
+      # Lanza la aplicación en segundo plano para hacer una prueba de humo.
+      - name: Arrancar aplicación para smoke test
+        run: |
+          # Inicia el JAR sin bloquear el workflow.
+          # stdout y stderr se redirigen a app.log.
+          nohup java -jar "${{ steps.jar.outputs.jar_file }}" > app.log 2>&1 &
+
+          # Guarda el PID del proceso para poder detenerlo al final.
+          echo $! > app.pid
+
+      # Espera hasta que la aplicación esté disponible y responda
+      # correctamente al endpoint de salud.
+      - name: Esperar a que la aplicación responda
+        run: |
+          # Reintenta hasta 24 veces, esperando 5 segundos entre intentos.
+          for i in {1..24}; do
+            # curl:
+            # -f hace fallar si el código HTTP no es 2xx/3xx
+            # -s modo silencioso
+            # -S muestra errores aunque se use -s
+            if curl -fsS http://127.0.0.1:8888/actuator/health > /tmp/health.json; then
+              # Si responde correctamente, muestra el JSON de salud y termina bien.
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 5
+          done
+
+          # Si se agotan los intentos, muestra logs y falla el workflow.
+          echo "La aplicación no respondió a tiempo"
+          cat app.log || true
+          exit 1
+
+      # Detiene la aplicación aunque algún paso anterior haya fallado.
+      - name: Detener aplicación
+        # always() fuerza la ejecución incluso si el job va en estado de error.
+        if: always()
+        run: |
+          # Si existe el fichero con el PID, intenta matar el proceso.
+          if [ -f app.pid ]; then
+            kill $(cat app.pid) || true
+          fi
