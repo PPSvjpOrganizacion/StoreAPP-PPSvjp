@@ -17,7 +17,6 @@ COPY --from=build /usr/share/maven /usr/share/maven
 ENV PATH="/usr/share/maven/bin:${PATH}"
 
 EXPOSE 8888
-VOLUME ["/app/work", "/app/work/logs"]
 
 # ENTRYPOINT: crea BD con sql-maven-plugin (usa src/main/resources/*.sql del pom)
-ENTRYPOINT ["sh", "-c", "mvn sql:execute -Dsql.format=false && java -jar app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
