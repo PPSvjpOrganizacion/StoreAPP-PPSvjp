@@ -1,0 +1,31 @@
+name: Maven Site
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+
+      - name: Generar documentación del proyecto
+        run: mvn -B clean site
+
+      - name: Publicar site como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-site
+          path: target/site
