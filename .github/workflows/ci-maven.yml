@@ -1,0 +1,132 @@
+# Nombre del workflow visible en la pestaña "Actions" de GitHub
+name: CI Maven
+
+# Eventos que disparan este workflow
+on:
+  # Se ejecuta en cualquier push a cualquier rama
+  push:
+    branches:
+      - '**'
+  # También se ejecuta en pull requests
+  pull_request:
+
+jobs:
+  # Definición del job principal
+  build-test-package:
+
+    # Runner sobre el que se ejecuta (máquina virtual Linux)
+    runs-on: ubuntu-latest
+
+    # 🔥 Servicios auxiliares (equivalente a docker-compose)
+    services:
+      db:
+        # Imagen oficial de PostgreSQL
+        image: postgres:15
+
+        # Variables de entorno para inicializar la BD
+        env:
+          POSTGRES_DB: store
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: secr3t
+
+        # Mapea el puerto del contenedor al runner
+        ports:
+          - 5432:5432
+
+        # Healthcheck para saber cuándo PostgreSQL está listo
+        options: >-
+          --health-cmd="pg_isready -U app"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      # Descarga el código del repositorio en el runner
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # Instala Java 11 (necesario para Spring Boot)
+      # Además activa caché de dependencias Maven
+      - name: Configurar Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin      # Distribución de OpenJDK
+          java-version: '11'         # Versión requerida
+          cache: maven               # Cachea dependencias para acelerar builds
+
+      # 🔨 Compila, ejecuta tests y empaqueta la aplicación
+      - name: Build con Maven
+        run: mvn -B clean verify
+        env:
+          # 🔥 Fuerza uso de PostgreSQL (evita Derby/H2)
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/store
+          SPRING_DATASOURCE_USERNAME: app
+          SPRING_DATASOURCE_PASSWORD: secr3t
+
+      # 🔍 Localiza el JAR generado dentro de target/
+      - name: Localizar JAR generado
+        id: jar
+        run: |
+          # Busca el primer .jar válido generado
+          JAR_FILE=$(find target -maxdepth 1 -type f -name '*.jar' ! -name '*sources.jar' ! -name '*javadoc.jar' | head -n 1)
+
+          # Si no encuentra ningún JAR → error
+          if [ -z "$JAR_FILE" ]; then
+            echo "No se encontró ningún JAR"
+            exit 1
+          fi
+
+          # Exporta la ruta del JAR como variable de salida
+          echo "jar_file=$JAR_FILE" >> "$GITHUB_OUTPUT"
+
+      # 📦 Publica el JAR como artefacto descargable
+      - name: Publicar artefacto JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-app-jar
+          path: ${{ steps.jar.outputs.jar_file }}
+
+      # 🚀 Arranca la aplicación en segundo plano (simula despliegue)
+      - name: Arrancar aplicación
+        run: |
+          # Ejecuta el JAR sin bloquear el pipeline
+          nohup java -jar "${{ steps.jar.outputs.jar_file }}" > app.log 2>&1 &
+
+          # Guarda el PID para poder parar luego el proceso
+          echo $! > app.pid
+        env:
+          # 🔥 Conexión a PostgreSQL del servicio
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/store
+          SPRING_DATASOURCE_USERNAME: app
+          SPRING_DATASOURCE_PASSWORD: secr3t
+
+      # ⏳ Espera hasta que la app responda correctamente
+      - name: Esperar a que la app responda
+        run: |
+          # Reintenta hasta 24 veces (≈2 minutos)
+          for i in {1..24}; do
+
+            # Llama al endpoint de salud de Spring Boot
+            if curl -fsS http://127.0.0.1:8888/actuator/health > /tmp/health.json; then
+              # Si responde OK, muestra el resultado
+              cat /tmp/health.json
+              exit 0
+            fi
+
+            # Espera antes de reintentar
+            sleep 5
+          done
+
+          # Si no responde → muestra logs y falla
+          echo "La aplicación no respondió"
+          cat app.log || true
+          exit 1
+
+      # 🧹 Detiene la aplicación (aunque haya fallado algo)
+      - name: Detener aplicación
+        if: always()
+        run: |
+          # Si existe el PID, mata el proceso
+          if [ -f app.pid ]; then
+            kill $(cat app.pid) || true
+          fi
