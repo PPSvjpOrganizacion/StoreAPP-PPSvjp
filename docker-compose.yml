@@ -14,19 +14,11 @@ services:
 
   # Servicio de la aplicación Java
   app:
-    # la imagen se llama store-app y la hemos generado con 
-    # docker build -t store-app .
-    image: store-app
-    ports:
-      # Exponer el puerto 8888 del contenedor al host
-      - "8888:8888"
-    # Va a esperar a que arranque la aplicación BBDD primero  
+    # Construye la imagen a partir del Dockerfile en el directorio actual
+    build: .
+    # Indica que el servicio app depende de db (db se inicia primero)
     depends_on:
       - db
-    environment:
-      # url para consultar con BBDD
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/store
-      # Usuario de BBDD
-      SPRING_DATASOURCE_USERNAME: app
-      # contraseña de BBDD
-      SPRING_DATASOURCE_PASSWORD: secr3t
+    # Exponer el puerto 8888 del contenedor al host
+    ports:
+      - "8888:8888"
